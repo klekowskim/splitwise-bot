@@ -5,6 +5,10 @@ function isAskForHelp(event) {
 	return event.text.indexOf("help") > -1;
 }
 
+function isAskForBalance(event) {
+	return event.text.indexOf("balance") > -1;
+}
+
 function isInThread(event) {
 	return !!event.thread_ts;
 }
@@ -19,9 +23,10 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 		});
 	}
 
-	async function replyBlocks(conversationId, blocks) {
+	async function replyBlocks(conversationId, threadTs, blocks) {
 		return await webClient.chat.postMessage({
 			channel: conversationId,
+			thread_ts: threadTs,
 			blocks: blocks
 		});
 	}
@@ -54,33 +59,31 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 		const usersWithBalance = slackUsers.reduce((acc, slackUser) => {
 			const splitwiseUserId = usersMapper.getSplitwiseUser(slackUser.id);
 			if (splitwiseUserId) {
-				const amount = balance.find(b => `${b.id}` === splitwiseUserId);
-				console.log(">>>>splitwiseUserId, amount", splitwiseUserId, amount);
+				const userBalance = balance.find(b => `${b.id}` === splitwiseUserId);
 				// todo validate found
-				return [...acc, { slackUser, amount }];
+				return [...acc, { slackUser, balance: userBalance }];
 			}
 			return acc;
 		}, []);
 
-		return _.take(_.orderBy(usersWithBalance, "amount"), count);
+		return _.take(_.orderBy(usersWithBalance, "balance.amount"), count);
 	}
 
 	const handle = async (event) => {
 		if (isAskForHelp(event)) {
-			await replyBlocks(event.channel, messageTemplates.helpBlocks());
+			await replyBlocks(event.channel, undefined, messageTemplates.helpBlocks());
+		} else if (isAskForBalance(event)) {
+			const balance = await splitwiseApi.getGroupBalance();
+			await replyBlocks(event.channel, event.thread_ts, messageTemplates.totalBalance(balance));
 		} else if (isInThread(event)) {
 			const usersIds = await getUsersIdsFromThread(
 				event.channel,
 				event.thread_ts
 			);
-			console.log("unique slackUsers from thread", usersIds);
 			const slackUsers = await getUsersInfo(usersIds);
-			console.log("Users", slackUsers);
 			const balance = await splitwiseApi.getGroupBalance();
-			console.log(">>balance", balance);
-
-			const users = findUsersWithTopDebt(slackUsers, balance, 3);
-			console.log("....found users", users);
+			const usersWithBalance = findUsersWithTopDebt(slackUsers, balance, 3);
+			await replyBlocks(event.channel, event.thread_ts, messageTemplates.topUserWithBalance(usersWithBalance))
 		} else {
 			await reply(event.channel, "Please ask me in thread.");
 		}

@@ -12,18 +12,22 @@ module.exports = function SplitwiseApi() {
 	async function getGroupBalance() {
 		const response = await api.getGroup({ id: groupId });
 
-		return response.members.map(m => {
+		let result = response.members.map(m => {
 			let amount = 0;
+			let currency = "?";
 			if (m.balance[0]) {
 				amount = parseFloat(m.balance[0].amount);
-				console.log(">>amount", m.balance[0].amount, amount);
+				currency = m.balance[0].currency_code;
 			}
 			return ({
 				id: m.id,
-				name: `${m.first_name} ${m.last_name}`, // todo remove?
-				amount
+				name: `${m.first_name} ${m.last_name}`,
+				amount,
+				currency
 			});
 		});
+
+		return _.sortBy(result, "amount");
 	}
 
 	return {
