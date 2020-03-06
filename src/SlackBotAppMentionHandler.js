@@ -45,6 +45,7 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 			if (message.hasOwnProperty("user") && !message.hasOwnProperty("bot_id")) {
 				return [...acc, message.user];
 			}
+			return acc;
 		}, []);
 		return _.uniq(userIds);
 	}
