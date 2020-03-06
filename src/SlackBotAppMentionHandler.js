@@ -15,10 +15,11 @@ function isInThread(event) {
 
 module.exports = function (webClient, splitwiseApi, usersMapper) {
 
-	async function reply(conversationId, message) {
+	async function reply(conversationId, threadTs, message) {
 		return webClient.chat.postMessage({
-			text: message,
 			channel: conversationId,
+			thread_ts: threadTs,
+			text: message,
 			message: message
 		});
 	}
@@ -40,7 +41,12 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 
 		console.log("Messages", response.messages);
 
-		return _.uniq(response.messages.map(message => message.user));
+		let userIds = response.messages.reduce((acc, message) => {
+			if (message.hasOwnProperty("user") && !message.hasOwnProperty("bot_id")) {
+				return [...acc, message.user];
+			}
+		}, []);
+		return _.uniq(userIds);
 	}
 
 	async function getUsersInfo(usersIds) {
@@ -94,10 +100,10 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 				await replyBlocks(event.channel, event.thread_ts, messageTemplates.topUserWithBalance(usersWithBalance))
 			} catch (e) {
 				console.error(e);
-				await reply(event.channel, "Something went wrong :disappointed:");
+				await reply(event.channel, event.thread_ts, "Something went wrong :disappointed:");
 			}
 		} else {
-			await reply(event.channel, "Please ask me in thread.");
+			await reply(event.channel, undefined, "Please ask me in thread.");
 		}
 	};
 
