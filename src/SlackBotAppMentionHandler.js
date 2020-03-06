@@ -32,10 +32,14 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 	}
 
 	async function getUsersIdsFromThread(channel, threadTs) {
+		console.log("Get messages from thread", channel, threadTs);
 		const response = await webClient.conversations.replies({
 			channel: channel,
 			ts: threadTs
 		});
+
+		console.log("Messages", response.messages);
+
 		return _.uniq(response.messages.map(message => message.user));
 	}
 
@@ -76,14 +80,22 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 			const balance = await splitwiseApi.getGroupBalance();
 			await replyBlocks(event.channel, event.thread_ts, messageTemplates.totalBalance(balance));
 		} else if (isInThread(event)) {
-			const usersIds = await getUsersIdsFromThread(
-				event.channel,
-				event.thread_ts
-			);
-			const slackUsers = await getUsersInfo(usersIds);
-			const balance = await splitwiseApi.getGroupBalance();
-			const usersWithBalance = findUsersWithTopDebt(slackUsers, balance, 3);
-			await replyBlocks(event.channel, event.thread_ts, messageTemplates.topUserWithBalance(usersWithBalance))
+			try {
+				const usersIds = await getUsersIdsFromThread(
+					event.channel,
+					event.thread_ts
+				);
+
+				console.log("Users read from the thread", usersIds.join(", "));
+
+				const slackUsers = await getUsersInfo(usersIds);
+				const balance = await splitwiseApi.getGroupBalance();
+				const usersWithBalance = findUsersWithTopDebt(slackUsers, balance, 3);
+				await replyBlocks(event.channel, event.thread_ts, messageTemplates.topUserWithBalance(usersWithBalance))
+			} catch (e) {
+				console.error(e);
+				await reply(event.channel, "Something went wrong :disappointed:");
+			}
 		} else {
 			await reply(event.channel, "Please ask me in thread.");
 		}
