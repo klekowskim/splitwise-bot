@@ -125,6 +125,32 @@ describe("SlackBotAppMentionHandler", () => {
 			]))
 		});
 
+		it("should get users from cache and not call slack api second time", async () => {
+			// given
+			const threadTs = "T123012";
+			splitwiseApiMock.getGroupBalance.mockResolvedValue(balance);
+			const slackEvent = testData.slack.createAppMention(CHANNEL, threadTs, "<BOT_ID>");
+			slackWebClientMock.conversations.replies.mockResolvedValue({
+				messages: [
+					testData.slack.createThreadMessage(SLACK_USER_1, "lunch vege - naan"),
+					testData.slack.createThreadMessage(SLACK_USER_2, "lunch mięso - ryż"),
+					testData.slack.createThreadMessage(SLACK_USER_3, "lunch vege - naan"),
+					testData.slack.createThreadMessage(SLACK_USER_4, "lunch vege - ryż"),
+					testData.slack.createThreadMessage(SLACK_USER_5, "lunch vege - naan"),
+				]
+			});
+			slackWebClientMock.users.info
+				.mockImplementation(({ user }) => Promise.resolve({ ok: true, user: SLACK_USERS.find(u => u.id === user) }));
+
+			// when
+			await handler.handle(slackEvent);
+			// second call
+			await handler.handle(slackEvent);
+
+			// then
+			expect(slackWebClientMock.users.info).toHaveBeenCalledTimes(5);
+		});
+
 	});
 
 	function assertReplay(channel, threadTs, message) {

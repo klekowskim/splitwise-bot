@@ -1,5 +1,6 @@
 const _ = require("lodash");
 const messageTemplates = require("./templates");
+const SlackUsersService = require("./SlackUsersService");
 
 function isAskForHelp(event) {
 	return event.text.indexOf("help") > -1;
@@ -14,6 +15,8 @@ function isInThread(event) {
 }
 
 module.exports = function (webClient, splitwiseApi, usersMapper) {
+
+	const slackUsersService = SlackUsersService(webClient);
 
 	async function reply(conversationId, threadTs, message) {
 		return webClient.chat.postMessage({
@@ -50,21 +53,6 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 		return _.uniq(userIds);
 	}
 
-	async function getUsersInfo(usersIds) {
-		// todo add cache
-		const requests = usersIds.reduce((acc, user) => {
-			const request = webClient.users.info({
-				user: user
-			});
-			acc.push(request);
-			return acc;
-		}, []);
-		const responses = await Promise.all(requests);
-		return responses
-			.filter(resp => resp.ok === true)
-			.map(resp => resp.user);
-	}
-
 	function findUsersWithTopDebt(slackUsers, balance, count) {
 		// todo validate user not found
 		const usersWithBalance = slackUsers.reduce((acc, slackUser) => {
@@ -95,10 +83,7 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 
 				console.log("Users read from the thread", usersIds.join(", "));
 
-				const slackUsers = await getUsersInfo(usersIds);
-
-				console.log("Slack users details fetched");
-
+				const slackUsers = await slackUsersService.getUsersInfo(usersIds);
 				const balance = await splitwiseApi.getGroupBalance();
 				const usersWithBalance = findUsersWithTopDebt(slackUsers, balance, 3);
 				await replyBlocks(event.channel, event.thread_ts, messageTemplates.topUserWithBalance(usersWithBalance))
