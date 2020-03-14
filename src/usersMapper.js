@@ -1,11 +1,10 @@
 const _ = require("lodash");
-const splitwiseUserToSlackMapping = require(process.env.USERS_MAPPING_FILE);
 
-module.exports = function () {
-	const slackUserToSplitwiseMapping = _.invert(splitwiseUserToSlackMapping);
+module.exports = function (mapping) {
+	const slackUserToSplitwiseMapping = _.invert(mapping);
 	return {
 		getSlackUser: function (splitwiseUserId) {
-			return splitwiseUserToSlackMapping[`${splitwiseUserId}`];
+			return mapping[`${splitwiseUserId}`];
 		},
 		getSplitwiseUser: function (slackUserId) {
 			return slackUserToSplitwiseMapping[slackUserId]

@@ -9,7 +9,7 @@ module.exports = function SlackBot(splitwiseApi, usersMapper) {
 	const appMentionHandler = SlackBotAppMentionHandler(webClient, splitwiseApi, usersMapper);
 
 	const onAppMention = (event) => {
-		console.log(`app_mention`, event);
+		console.log(`App mention`, event);
 		appMentionHandler.handle(event);
 	};
 

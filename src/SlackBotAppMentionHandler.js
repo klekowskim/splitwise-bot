@@ -33,13 +33,13 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 	}
 
 	async function getUsersIdsFromThread(channel, threadTs) {
-		console.log("Get messages from thread", channel, threadTs);
+		console.log("Get messages from thread. Channel: %s. Thread: %s.", channel, threadTs);
 		const response = await webClient.conversations.replies({
 			channel: channel,
 			ts: threadTs
 		});
 
-		console.log("Messages", response.messages);
+		console.log("Messages in thread: ", response.messages);
 
 		let userIds = response.messages.reduce((acc, message) => {
 			if (message.hasOwnProperty("user") && !message.hasOwnProperty("bot_id")) {
@@ -82,7 +82,7 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 
 	const handle = async (event) => {
 		if (isAskForHelp(event)) {
-			await replyBlocks(event.channel, undefined, messageTemplates.helpBlocks());
+			await replyBlocks(event.channel, event.thread_ts, messageTemplates.helpBlocks());
 		} else if (isAskForBalance(event)) {
 			const balance = await splitwiseApi.getGroupBalance();
 			await replyBlocks(event.channel, event.thread_ts, messageTemplates.totalBalance(balance));
@@ -96,6 +96,9 @@ module.exports = function (webClient, splitwiseApi, usersMapper) {
 				console.log("Users read from the thread", usersIds.join(", "));
 
 				const slackUsers = await getUsersInfo(usersIds);
+
+				console.log("Slack users details fetched");
+
 				const balance = await splitwiseApi.getGroupBalance();
 				const usersWithBalance = findUsersWithTopDebt(slackUsers, balance, 3);
 				await replyBlocks(event.channel, event.thread_ts, messageTemplates.topUserWithBalance(usersWithBalance))

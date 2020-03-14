@@ -1,13 +1,6 @@
 const _ = require("lodash");
-const Splitwise = require("splitwise");
 
-module.exports = function SplitwiseApi() {
-
-	const api = Splitwise({
-		consumerKey: process.env.SPLITWISE_CONSUMER_KEY,
-		consumerSecret: process.env.SPLITWISE_CONSUMER_SECRET
-	});
-	const groupId = process.env.SPLITWISE_GROUP_ID;
+module.exports = function SplitwiseApi(api, groupId) {
 
 	async function getGroupBalance() {
 		const response = await api.getGroup({ id: groupId });
