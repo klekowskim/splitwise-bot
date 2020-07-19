@@ -12,7 +12,7 @@
   "dependencies": {
     "@slack/events-api": "^2.3.1",
     "@slack/web-api": "^5.7.0",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "splitwise": "^1.0.0",
     "dotenv": "^8.2.0"
   },
